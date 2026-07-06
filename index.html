@@ -2,129 +2,180 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MapTap Battle: Harshit vs Abhed vs Garima</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
+    /* Material 3 Dark Theme Palette */
     :root {
-      --bg-color: #020617;
-      --card-bg: rgba(30, 41, 59, 0.5);
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --accent: #38bdf8;
-      --border: rgba(255, 255, 255, 0.08);
+      --m3-surface: #141218;
+      --m3-surface-container: #211F26;
+      --m3-surface-container-high: #2B2930;
+      --m3-on-surface: #E6E0E9;
+      --m3-on-surface-variant: #CAC4D0;
+      --m3-outline-variant: #49454F;
+      
+      /* Chic Material You Accents */
+      --color-harshit: #D0BCFF; /* Macaron Lavender */
+      --color-abhed: #FFB4AB;   /* Soft Peach/Coral */
+      --color-garima: #93D7A5;  /* Sage Mint */
     }
 
     body { 
-      font-family: 'Inter', system-ui, sans-serif; 
-      background: linear-gradient(135deg, #0f172a 0%, #020617 100%); 
-      color: var(--text-main); 
-      padding: 2rem; 
+      /* system-ui triggers Google Sans on Pixel devices */
+      font-family: system-ui, -apple-system, sans-serif; 
+      background: var(--m3-surface); 
+      color: var(--m3-on-surface); 
+      padding: 16px; 
       margin: 0; 
       min-height: 100vh;
+      /* Prevent pull-to-refresh on mobile if heavily scrolling charts */
+      overscroll-behavior-y: none; 
     }
 
+    /* M3 Expressive Typography */
     h1 { 
-      text-align: center; 
-      color: var(--text-main); 
-      font-weight: 700;
+      text-align: left; 
+      font-size: 2.25rem;
+      font-weight: 400;
+      line-height: 1.2;
       letter-spacing: -0.5px;
-      margin-bottom: 2rem;
+      margin: 1rem 0 2rem 8px;
+      color: var(--m3-on-surface);
     }
-    h1 span { color: var(--accent); }
-
-    /* Glassmorphism styling */
-    .glass {
-      background: var(--card-bg);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    h1 span { 
+      display: block; 
+      font-size: 3rem; 
+      font-weight: 700;
+      background: linear-gradient(90deg, var(--color-harshit), var(--color-garima));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
     }
 
-    .dashboard { max-width: 1200px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
+    .dashboard { display: flex; flex-direction: column; gap: 16px; }
     
-    /* Summary Cards */
-    .summary-container { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
+    /* M3 Cards */
+    .summary-container { 
+      display: grid; 
+      grid-template-columns: 1fr; /* Stacks vertically on mobile by default */
+      gap: 12px; 
+    }
+    
     .card { 
-      padding: 1.5rem; 
-      text-align: center; 
-      flex: 1; 
-      min-width: 220px;
-      transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+      background: var(--m3-surface-container);
+      padding: 20px 24px; 
+      border-radius: 28px; /* Classic M3 large border radius */
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
-    .card:hover {
-      transform: translateY(-5px);
-      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
-      border-color: rgba(56, 189, 248, 0.4);
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; bottom: 0; width: 8px;
+      background: var(--player-color);
     }
-    .card h3 { margin: 0 0 10px 0; font-size: 1.4rem; color: var(--text-main); }
-    .card p { margin: 8px 0; color: var(--text-muted); font-size: 0.95rem; }
-    .card b { color: var(--text-main); font-weight: 600; }
 
-    /* Chart Grid Layout */
-    .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(450px, 1fr)); gap: 1.5rem; }
-    .chart-wrapper { padding: 1.5rem; position: relative; height: 350px; }
-    .chart-wrapper.full-width { grid-column: 1 / -1; height: 400px; }
+    .card h3 { 
+      margin: 0; 
+      font-size: 1.5rem; 
+      font-weight: 500; 
+      color: var(--player-color); 
+    }
+    .card .stats {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .card .stat-box { display: flex; flex-direction: column; }
+    .card p { margin: 0; color: var(--m3-on-surface-variant); font-size: 0.85rem; }
+    .card b { color: var(--m3-on-surface); font-size: 1.2rem; font-weight: 600; }
 
-    #loading { text-align: center; padding: 50px; font-size: 1.2rem; color: var(--accent); }
+    /* Chart Containers */
+    .chart-wrapper { 
+      background: var(--m3-surface-container); 
+      padding: 16px; 
+      border-radius: 28px; 
+      position: relative; 
+      height: 320px; /* Perfect height for modern mobile screens */
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* M3 Loader */
+    #loading { text-align: center; padding: 50px; font-size: 1.1rem; color: var(--m3-on-surface-variant); }
     
-    /* Responsive tweaks */
-    @media (max-width: 600px) {
-      .charts-grid { grid-template-columns: 1fr; }
-      body { padding: 1rem; }
+    /* Tablet & Desktop Escalation */
+    @media (min-width: 600px) {
+      body { padding: 24px; }
+      .summary-container { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      h1 { text-align: center; margin: 2rem 0 3rem 0; }
+      h1 span { display: inline; }
+      .dashboard { grid-template-columns: 1fr 1fr; display: grid; gap: 24px; }
+      .chart-wrapper { height: 400px; }
+      .chart-wrapper.full-width { grid-column: 1 / -1; }
+      .summary-container { grid-column: 1 / -1; }
     }
   </style>
 </head>
 <body>
-  <h1>🏆 MapTap <span>Battle</span></h1>
+  <h1>MapTap <span>Live Battle</span></h1>
   
-  <div id="loading">Loading live scores...</div>
+  <div id="loading">Syncing scores...</div>
   
   <div id="content" class="dashboard" style="display:none">
     <div id="summary" class="summary-container"></div>
     
-    <div class="charts-grid">
-      <div class="chart-wrapper glass full-width">
-        <canvas id="lineChart"></canvas>
-      </div>
-      <div class="chart-wrapper glass">
-        <canvas id="avgChart"></canvas>
-      </div>
-      <div class="chart-wrapper glass">
-        <canvas id="gameChart"></canvas>
-      </div>
+    <div class="chart-wrapper full-width">
+      <canvas id="lineChart"></canvas>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="avgChart"></canvas>
+    </div>
+    <div class="chart-wrapper">
+      <canvas id="gameChart"></canvas>
     </div>
   </div>
 
 <script>
-// Sleek vibrant colors for the modern dark theme
-const colors = { Harshit: '#38bdf8', Abhed: '#f43f5e', Garima: '#10b981' };
+// Chic Material You colors
+const colors = { 
+  Harshit: '#D0BCFF', // Lavender
+  Abhed: '#FFB4AB',   // Peach
+  Garima: '#93D7A5'   // Mint
+};
 
-// Global Chart.js defaults for modern look
-Chart.defaults.color = '#94a3b8';
-Chart.defaults.font.family = "'Inter', sans-serif";
-Chart.defaults.scale.grid.color = 'rgba(255, 255, 255, 0.05)';
+// Apply M3 typography & grid styles to Chart.js globally
+Chart.defaults.color = '#CAC4D0';
+Chart.defaults.font.family = "system-ui, -apple-system, sans-serif";
+Chart.defaults.font.size = 13;
+Chart.defaults.scale.grid.color = '#49454F'; // M3 Outline Variant
+Chart.defaults.scale.grid.drawBorder = false;
 
-// Reusable custom tooltip and legend config
+// M3 Expressive Tooltip & Legend
 const commonOptions = {
   responsive: true,
   maintainAspectRatio: false,
+  layout: { padding: { top: 10 } },
   plugins: {
     legend: {
-      labels: { usePointStyle: true, boxWidth: 8, padding: 20 }
+      position: 'bottom',
+      labels: { usePointStyle: true, pointStyle: 'circle', padding: 20, font: { weight: '500' } }
     },
     tooltip: {
-      backgroundColor: 'rgba(15, 23, 42, 0.9)',
-      titleColor: '#f8fafc',
-      bodyColor: '#cbd5e1',
-      borderColor: 'rgba(255,255,255,0.1)',
-      borderWidth: 1,
-      padding: 12,
-      cornerRadius: 8,
-      boxPadding: 6
+      backgroundColor: '#2B2930', // Surface Container High
+      titleColor: '#E6E0E9',
+      bodyColor: '#CAC4D0',
+      padding: 16,
+      cornerRadius: 16, // M3 characteristic rounded tooltip
+      boxPadding: 8,
+      usePointStyle: true,
+      borderColor: 'rgba(255,255,255,0.05)',
+      borderWidth: 1
     }
   }
 };
@@ -137,11 +188,13 @@ async function loadData() {
 
     document.getElementById('loading').style.display = 'none';
     document.getElementById('content').style.display = 'flex';
+    // For desktop grid application
+    if(window.innerWidth > 600) document.getElementById('content').style.display = 'grid';
 
     renderSummary(data.summary);
     renderCharts(data);
   } catch(err) {
-    document.getElementById('loading').innerHTML = `⚠️ Error loading data: ${err.message}<br><small>Make sure you are running a local server (e.g., Live Server).</small>`;
+    document.getElementById('loading').innerHTML = `⚠️ Error syncing data: ${err.message}`;
   }
 }
 
@@ -151,11 +204,22 @@ function renderSummary(summary) {
   Object.keys(summary).forEach(player => {
     const s = summary[player];
     container.innerHTML += `
-      <div class="card glass" style="border-top: 4px solid ${colors[player]}">
-        <h3 style="color: ${colors[player]}">${player}</h3>
-        <p><b>Best Score:</b> ${s.best}</p>
-        <p><b>Daily Avg:</b> ${s.average}</p>
-        <p><b>Days Played:</b> ${s.days_played}</p>
+      <div class="card" style="--player-color: ${colors[player]}">
+        <h3>${player}</h3>
+        <div class="stats">
+          <div class="stat-box">
+            <p>Best Score</p>
+            <b>${s.best}</b>
+          </div>
+          <div class="stat-box" style="text-align: center;">
+            <p>Daily Avg</p>
+            <b>${s.average}</b>
+          </div>
+          <div class="stat-box" style="text-align: right;">
+            <p>Days Played</p>
+            <b>${s.days_played}</b>
+          </div>
+        </div>
       </div>`;
   });
 }
@@ -163,42 +227,38 @@ function renderSummary(summary) {
 function renderCharts(data) {
   const allDates = [...new Set(Object.values(data.players).flat().map(d => d.date))].sort();
 
-  // 1. Interactive Line Chart (Area style)
+  // 1. Line Chart (Thick, smooth lines - expressive M3 style)
   const lineDatasets = Object.keys(data.players).map(player => {
     const totals = allDates.map(date => data.players[player].find(d => d.date === date)?.total || null);
     return { 
       label: player, 
       data: totals, 
       borderColor: colors[player], 
-      backgroundColor: colors[player] + '1A', // Transparent fill
-      borderWidth: 3,
-      pointBackgroundColor: '#0f172a',
+      backgroundColor: colors[player] + '22',
+      borderWidth: 4, // Chunky expressive lines
+      pointBackgroundColor: '#141218',
       pointBorderColor: colors[player],
-      pointBorderWidth: 2,
-      pointRadius: 4,
-      pointHoverRadius: 6,
-      fill: true, // Creates the modern Area-chart look
-      tension: 0.4 // Smooth curves
+      pointBorderWidth: 3,
+      pointRadius: 5,
+      pointHoverRadius: 8,
+      tension: 0.5 // Extra smooth curves
     };
   });
 
   new Chart(document.getElementById('lineChart'), {
     type: 'line',
-    data: { labels: allDates, datasets: lineDatasets },
+    data: { labels: allDates.map(d => d.substring(5)), datasets: lineDatasets }, // Trim year for mobile readability
     options: {
       ...commonOptions,
-      interaction: {
-        mode: 'index', // Hovering over a date shows all 3 players at once
-        intersect: false,
-      },
+      interaction: { mode: 'index', intersect: false },
       plugins: {
         ...commonOptions.plugins,
-        title: { display: true, text: 'Daily Total Scores Over Time', color: '#f8fafc', font: { size: 16, weight: '600' }, padding: { bottom: 20 } }
+        title: { display: true, align: 'start', text: 'Total Scores Over Time', color: '#E6E0E9', font: { size: 18, weight: '400' }, padding: { bottom: 20 } }
       }
     }
   });
 
-  // 2. Average Scores Bar Chart
+  // 2. Average Scores Bar Chart (Pill shaped bars)
   new Chart(document.getElementById('avgChart'), {
     type: 'bar',
     data: { 
@@ -206,17 +266,21 @@ function renderCharts(data) {
       datasets: [{ 
         label: 'Overall Average', 
         data: Object.values(data.summary).map(s => s.average), 
-        backgroundColor: Object.values(colors).map(c => c + 'CC'),
-        hoverBackgroundColor: Object.values(colors),
-        borderRadius: 6 // Modern rounded bars
+        backgroundColor: Object.values(colors),
+        borderRadius: 16, // M3 pill-shaped bars
+        borderSkipped: false,
+        barThickness: 32 // Thicker, friendlier bars
       }] 
     },
     options: { 
       ...commonOptions,
       plugins: {
         ...commonOptions.plugins,
-        legend: { display: false }, // Hide legend since colors map to players
-        title: { display: true, text: 'Overall Average Scores', color: '#f8fafc', font: { size: 16, weight: '600' } }
+        legend: { display: false },
+        title: { display: true, align: 'start', text: 'Overall Average', color: '#E6E0E9', font: { size: 18, weight: '400' } }
+      },
+      scales: {
+        x: { grid: { display: false } }
       }
     }
   });
@@ -234,13 +298,13 @@ function renderCharts(data) {
   new Chart(document.getElementById('gameChart'), {
     type: 'bar',
     data: { 
-      labels: ['Game 1','Game 2','Game 3','Game 4','Game 5'], 
+      labels: ['G1','G2','G3','G4','G5'], 
       datasets: Object.keys(gameAvgs).map(p => ({ 
         label: p, 
         data: gameAvgs[p], 
-        backgroundColor: colors[p] + 'E6',
-        hoverBackgroundColor: colors[p],
-        borderRadius: 4
+        backgroundColor: colors[p],
+        borderRadius: 8,
+        borderSkipped: false
       })) 
     },
     options: { 
@@ -248,7 +312,10 @@ function renderCharts(data) {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         ...commonOptions.plugins,
-        title: { display: true, text: 'Average Score per Round', color: '#f8fafc', font: { size: 16, weight: '600' } }
+        title: { display: true, align: 'start', text: 'Avg per Round', color: '#E6E0E9', font: { size: 18, weight: '400' } }
+      },
+      scales: {
+        x: { grid: { display: false } }
       }
     }
   });
