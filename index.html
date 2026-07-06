@@ -1,134 +1,94 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MapTap Battle: Harshit vs Abhed vs Garima</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; }
+    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; margin: 0; }
     h1 { text-align: center; color: #38bdf8; }
    .charts { display: grid; gap: 30px; max-width: 1000px; margin: auto; }
     canvas { background: #1e293b; border-radius: 12px; padding: 15px; }
-    #summary { max-width: 800px; margin: 30px auto; display: flex; justify-content: space-around; text-align: center; }
-   .card { background: #1e293b; padding: 15px; border-radius: 12px; width: 30%; }
-   .card h3 { margin: 5px 0; }
+    #summary { max-width: 900px; margin: 30px auto; display: flex; justify-content: space-around; gap: 15px; flex-wrap: wrap; }
+   .card { background: #1e293b; padding: 15px; border-radius: 12px; width: 200px; text-align: center; }
+   .card h3 { margin: 5px 0; color: #38bdf8; }
+    #loading { text-align: center; padding: 50px; }
   </style>
 </head>
 <body>
   <h1>🏆 MapTap 3-Way Battle</h1>
-
-  <div id="summary"></div>
-
-  <div class="charts">
-    <canvas id="lineChart"></canvas>
-    <canvas id="avgChart"></canvas>
-    <canvas id="gameHeatmap"></canvas>
+  <div id="loading">Loading scores...</div>
+  <div id="content" style="display:none">
+    <div id="summary"></div>
+    <div class="charts">
+      <canvas id="lineChart"></canvas>
+      <canvas id="avgChart"></canvas>
+      <canvas id="gameChart"></canvas>
+    </div>
   </div>
 
 <script>
+const colors = { Harshit: '#3b82f6', Abhed: '#ef4444', Garima: '#10b981' };
+
 async function loadData() {
-  const res = await fetch('maptap_scores.json');
-  const data = await res.json();
-  renderCharts(data);
-  renderSummary(data.summary);
+  try {
+    // IMPORTANT: use./ for github pages
+    const res = await fetch('./maptap_scores.json?v=' + new Date().getTime());
+    if(!res.ok) throw new Error('Could not load JSON');
+    const data = await res.json();
+
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+
+    renderSummary(data.summary);
+    renderCharts(data);
+  } catch(err) {
+    document.getElementById('loading').innerHTML = 'Error loading data: ' + err.message + '<br>Make sure maptap_scores.json is in the same folder';
+  }
 }
 
 function renderSummary(summary) {
   const container = document.getElementById('summary');
   Object.keys(summary).forEach(player => {
     const s = summary[player];
-    container.innerHTML += `
-      <div class="card">
-        <h3>${player}</h3>
-        <p><b>Best:</b> ${s.best}</p>
-        <p><b>Avg:</b> ${s.average}</p>
-        <p><b>Days:</b> ${s.days_played}</p>
-      </div>
-    `;
+    container.innerHTML += `<div class="card"><h3>${player}</h3><p><b>Best:</b> ${s.best}</p><p><b>Avg:</b> ${s.average}</p><p><b>Days:</b> ${s.days_played}</p></div>`;
   });
 }
 
 function renderCharts(data) {
-  // Prepare line chart data
   const allDates = [...new Set(Object.values(data.players).flat().map(d => d.date))].sort();
 
-  const colors = {
-    Harshit: 'rgb(59, 130, 246)',
-    Abhed: 'rgb(239, 68, 68)',
-    Garima: 'rgb(16, 185, 129)'
-  };
-
   const datasets = Object.keys(data.players).map(player => {
-    const playerData = data.players[player];
-    const totals = allDates.map(date => {
-      const day = playerData.find(d => d.date === date);
-      return day? day.total : null;
-    });
-    return {
-      label: player,
-      data: totals,
-      borderColor: colors[player],
-      backgroundColor: colors[player] + '33',
-      tension: 0.3,
-      fill: false
-    };
+    const totals = allDates.map(date => data.players[player].find(d => d.date === date)?.total || null);
+    return { label: player, data: totals, borderColor: colors[player], backgroundColor: colors[player] + '33', tension: 0.3 };
   });
 
-  // Line Chart: Daily Totals
   new Chart(document.getElementById('lineChart'), {
     type: 'line',
     data: { labels: allDates, datasets },
-    options: {
-      responsive: true,
-      plugins: { title: { display: true, text: 'Daily Total Scores', color: '#e2e8f0' } },
-      scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } } }
-    }
+    options: { responsive: true, plugins: { title: { display: true, text: 'Daily Total Scores' } }
   });
 
-  // Bar Chart: Averages
   new Chart(document.getElementById('avgChart'), {
     type: 'bar',
-    data: {
-      labels: Object.keys(data.summary),
-      datasets: [{
-        label: 'Average Score',
-        data: Object.values(data.summary).map(s => s.average),
-        backgroundColor: [colors.Harshit, colors.Abhed, colors.Garima]
-      }]
-    },
-    options: {
-      plugins: { title: { display: true, text: 'Average Scores', color: '#e2e8f0' } },
-      scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } }
-    }
+    data: { labels: Object.keys(data.summary), datasets: [{ label: 'Average', data: Object.values(data.summary).map(s => s.average), backgroundColor: Object.values(colors) }] },
+    options: { plugins: { title: { display: true, text: 'Average Scores' } }
   });
 
-  // Heatmap: Avg per Game
   const gameAvgs = {};
   Object.keys(data.players).forEach(player => {
-    const games = {g1: [], g2: [], g3: [], g4: [], g5: []};
-    data.players[player].forEach(d => {
-      games.g1.push(d.g1); games.g2.push(d.g2); games.g3.push(d.g3);
-      games.g4.push(d.g4); games.g5.push(d.g5);
+    const games = [1,2,3,4,5].map(i => {
+      const arr = data.players[player].map(d => d['g'+i]);
+      return Math.round(arr.reduce((a,b)=>a+b)/arr.length);
     });
-    gameAvgs[player] = Object.values(games).map(arr => Math.round(arr.reduce((a,b)=>a+b)/arr.length));
+    gameAvgs[player] = games;
   });
 
-  new Chart(document.getElementById('gameHeatmap'), {
+  new Chart(document.getElementById('gameChart'), {
     type: 'bar',
-    data: {
-      labels: ['Game 1', 'Game 2', 'Game 3', 'Game 4', 'Game 5'],
-      datasets: Object.keys(gameAvgs).map(player => ({
-        label: player,
-        data: gameAvgs[player],
-        backgroundColor: colors[player]
-      }))
-    },
-    options: {
-      plugins: { title: { display: true, text: 'Average Score per Game', color: '#e2e8f0' } },
-      scales: { x: { ticks: { color: '#94a3b8' } }, y: { ticks: { color: '#94a3b8' } }
-    }
+    data: { labels: ['G1','G2','G3','G4','G5'], datasets: Object.keys(gameAvgs).map(p => ({ label: p, data: gameAvgs[p], backgroundColor: colors[p] })) },
+    options: { plugins: { title: { display: true, text: 'Average per Game' } }
   });
 }
 
