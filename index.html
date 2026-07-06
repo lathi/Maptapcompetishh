@@ -3,116 +3,68 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>MapTap Battle: Harshit vs Abhed vs Garima</title>
+  <title>MapTap Battle</title>
+  
+  <!-- Chart.js & PapaParse (for Google Sheets CSV) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  
   <style>
-    /* Material 3 Dark Theme Palette */
     :root {
       --m3-surface: #141218;
       --m3-surface-container: #211F26;
-      --m3-surface-container-high: #2B2930;
       --m3-on-surface: #E6E0E9;
       --m3-on-surface-variant: #CAC4D0;
       --m3-outline-variant: #49454F;
-      
-      /* Chic Material You Accents */
-      --color-harshit: #D0BCFF; /* Macaron Lavender */
-      --color-abhed: #FFB4AB;   /* Soft Peach/Coral */
-      --color-garima: #93D7A5;  /* Sage Mint */
     }
 
     body { 
-      /* system-ui triggers Google Sans on Pixel devices */
       font-family: system-ui, -apple-system, sans-serif; 
       background: var(--m3-surface); 
       color: var(--m3-on-surface); 
-      padding: 16px; 
-      margin: 0; 
-      min-height: 100vh;
-      /* Prevent pull-to-refresh on mobile if heavily scrolling charts */
+      padding: 16px; margin: 0; min-height: 100vh;
       overscroll-behavior-y: none; 
     }
 
-    /* M3 Expressive Typography */
     h1 { 
-      text-align: left; 
-      font-size: 2.25rem;
-      font-weight: 400;
-      line-height: 1.2;
-      letter-spacing: -0.5px;
-      margin: 1rem 0 2rem 8px;
-      color: var(--m3-on-surface);
+      font-size: 2.25rem; font-weight: 400; line-height: 1.2; letter-spacing: -0.5px;
+      margin: 1rem 0 2rem 8px; color: var(--m3-on-surface);
     }
     h1 span { 
-      display: block; 
-      font-size: 3rem; 
-      font-weight: 700;
-      background: linear-gradient(90deg, var(--color-harshit), var(--color-garima));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      display: block; font-size: 3rem; font-weight: 700;
+      background: linear-gradient(90deg, #D0BCFF, #93D7A5);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
     }
 
     .dashboard { display: flex; flex-direction: column; gap: 16px; }
     
-    /* M3 Cards */
-    .summary-container { 
-      display: grid; 
-      grid-template-columns: 1fr; /* Stacks vertically on mobile by default */
-      gap: 12px; 
-    }
+    .summary-container { display: grid; grid-template-columns: 1fr; gap: 12px; }
     
     .card { 
       background: var(--m3-surface-container);
-      padding: 20px 24px; 
-      border-radius: 28px; /* Classic M3 large border radius */
-      position: relative;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
+      padding: 20px 24px; border-radius: 28px; position: relative; overflow: hidden;
+      display: flex; flex-direction: column; gap: 4px;
     }
-
     .card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; bottom: 0; width: 8px;
+      content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 8px;
       background: var(--player-color);
     }
-
-    .card h3 { 
-      margin: 0; 
-      font-size: 1.5rem; 
-      font-weight: 500; 
-      color: var(--player-color); 
-    }
-    .card .stats {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-top: 8px;
-    }
+    .card h3 { margin: 0; font-size: 1.5rem; font-weight: 500; color: var(--player-color); text-transform: capitalize; }
+    .card .stats { display: flex; justify-content: space-between; margin-top: 8px; }
     .card .stat-box { display: flex; flex-direction: column; }
     .card p { margin: 0; color: var(--m3-on-surface-variant); font-size: 0.85rem; }
     .card b { color: var(--m3-on-surface); font-size: 1.2rem; font-weight: 600; }
 
-    /* Chart Containers */
     .chart-wrapper { 
-      background: var(--m3-surface-container); 
-      padding: 16px; 
-      border-radius: 28px; 
-      position: relative; 
-      height: 320px; /* Perfect height for modern mobile screens */
-      width: 100%;
-      box-sizing: border-box;
+      background: var(--m3-surface-container); padding: 16px; border-radius: 28px; 
+      position: relative; height: 320px; width: 100%; box-sizing: border-box;
     }
 
-    /* M3 Loader */
-    #loading { text-align: center; padding: 50px; font-size: 1.1rem; color: var(--m3-on-surface-variant); }
+    #loading { text-align: center; padding: 50px; color: var(--m3-on-surface-variant); }
     
-    /* Tablet & Desktop Escalation */
     @media (min-width: 600px) {
       body { padding: 24px; }
-      .summary-container { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+      .summary-container { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
       h1 { text-align: center; margin: 2rem 0 3rem 0; }
       h1 span { display: inline; }
       .dashboard { grid-template-columns: 1fr 1fr; display: grid; gap: 24px; }
@@ -125,77 +77,97 @@
 <body>
   <h1>MapTap <span>Live Battle</span></h1>
   
-  <div id="loading">Syncing scores...</div>
+  <div id="loading">Syncing with Google Sheets...</div>
   
   <div id="content" class="dashboard" style="display:none">
     <div id="summary" class="summary-container"></div>
-    
-    <div class="chart-wrapper full-width">
-      <canvas id="lineChart"></canvas>
-    </div>
-    <div class="chart-wrapper">
-      <canvas id="avgChart"></canvas>
-    </div>
-    <div class="chart-wrapper">
-      <canvas id="gameChart"></canvas>
-    </div>
+    <div class="chart-wrapper full-width"><canvas id="lineChart"></canvas></div>
+    <div class="chart-wrapper"><canvas id="avgChart"></canvas></div>
+    <div class="chart-wrapper"><canvas id="gameChart"></canvas></div>
   </div>
 
 <script>
-// Chic Material You colors
-const colors = { 
-  Harshit: '#D0BCFF', // Lavender
-  Abhed: '#FFB4AB',   // Peach
-  Garima: '#93D7A5'   // Mint
-};
+// Replace this with your Google Sheet CSV Link later!
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vT5i7rM5qN6-wV1Fh_h38jA6aHnNn-X_2fK06wK4P7kXmC98vU6G5Q6x8N/pub?output=csv';
 
-// Apply M3 typography & grid styles to Chart.js globally
+// A dynamic pool of Material You colors. It auto-assigns as new players appear.
+const m3Palette = ['#D0BCFF', '#FFB4AB', '#93D7A5', '#FDE293', '#9CBCE2', '#FFD8E4', '#C9DF8A', '#F4B8E4'];
+const playerColors = {}; 
+
 Chart.defaults.color = '#CAC4D0';
 Chart.defaults.font.family = "system-ui, -apple-system, sans-serif";
-Chart.defaults.font.size = 13;
-Chart.defaults.scale.grid.color = '#49454F'; // M3 Outline Variant
+Chart.defaults.scale.grid.color = '#49454F';
 Chart.defaults.scale.grid.drawBorder = false;
 
-// M3 Expressive Tooltip & Legend
 const commonOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  layout: { padding: { top: 10 } },
+  responsive: true, maintainAspectRatio: false, layout: { padding: { top: 10 } },
   plugins: {
-    legend: {
-      position: 'bottom',
-      labels: { usePointStyle: true, pointStyle: 'circle', padding: 20, font: { weight: '500' } }
-    },
-    tooltip: {
-      backgroundColor: '#2B2930', // Surface Container High
-      titleColor: '#E6E0E9',
-      bodyColor: '#CAC4D0',
-      padding: 16,
-      cornerRadius: 16, // M3 characteristic rounded tooltip
-      boxPadding: 8,
-      usePointStyle: true,
-      borderColor: 'rgba(255,255,255,0.05)',
-      borderWidth: 1
-    }
+    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
+    tooltip: { backgroundColor: '#2B2930', titleColor: '#E6E0E9', bodyColor: '#CAC4D0', padding: 16, cornerRadius: 16, usePointStyle: true }
   }
 };
 
-async function loadData() {
-  try {
-    const res = await fetch('./maptap_scores.json?v=' + new Date().getTime());
-    if(!res.ok) throw new Error('Could not load JSON');
-    const data = await res.json();
+function loadData() {
+  Papa.parse(SHEET_CSV_URL, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      processData(results.data);
+    },
+    error: function(err) {
+      document.getElementById('loading').innerHTML = `⚠️ Error fetching Sheet: ${err.message}`;
+    }
+  });
+}
 
-    document.getElementById('loading').style.display = 'none';
-    document.getElementById('content').style.display = 'flex';
-    // For desktop grid application
-    if(window.innerWidth > 600) document.getElementById('content').style.display = 'grid';
+function processData(rows) {
+  const data = { summary: {}, players: {} };
+  let colorIndex = 0;
 
-    renderSummary(data.summary);
-    renderCharts(data);
-  } catch(err) {
-    document.getElementById('loading').innerHTML = `⚠️ Error syncing data: ${err.message}`;
-  }
+  rows.forEach(row => {
+    const player = row.Player ? row.Player.trim() : 'Unknown';
+    if (!player) return; // Skip invalid rows
+
+    // 1. Assign color if they are a new player
+    if (!playerColors[player]) {
+      playerColors[player] = m3Palette[colorIndex % m3Palette.length];
+      colorIndex++;
+    }
+
+    // 2. Initialize player in data structure if they don't exist
+    if (!data.players[player]) {
+      data.players[player] = [];
+      data.summary[player] = { best: 0, totalAccumulated: 0, days_played: 0 };
+    }
+
+    // 3. Extract scores
+    const total = parseInt(row.Total) || 0;
+    data.players[player].push({
+      date: row.Date,
+      total: total,
+      g1: parseInt(row.G1)||0, g2: parseInt(row.G2)||0, g3: parseInt(row.G3)||0, 
+      g4: parseInt(row.G4)||0, g5: parseInt(row.G5)||0
+    });
+
+    // 4. Update Summary Math
+    if (total > data.summary[player].best) data.summary[player].best = total;
+    data.summary[player].totalAccumulated += total;
+    data.summary[player].days_played += 1;
+  });
+
+  // Calculate Averages
+  Object.keys(data.summary).forEach(p => {
+    const s = data.summary[p];
+    s.average = Math.round(s.totalAccumulated / s.days_played);
+  });
+
+  document.getElementById('loading').style.display = 'none';
+  const content = document.getElementById('content');
+  content.style.display = window.innerWidth > 600 ? 'grid' : 'flex';
+
+  renderSummary(data.summary);
+  renderCharts(data);
 }
 
 function renderSummary(summary) {
@@ -204,21 +176,12 @@ function renderSummary(summary) {
   Object.keys(summary).forEach(player => {
     const s = summary[player];
     container.innerHTML += `
-      <div class="card" style="--player-color: ${colors[player]}">
+      <div class="card" style="--player-color: ${playerColors[player]}">
         <h3>${player}</h3>
         <div class="stats">
-          <div class="stat-box">
-            <p>Best Score</p>
-            <b>${s.best}</b>
-          </div>
-          <div class="stat-box" style="text-align: center;">
-            <p>Daily Avg</p>
-            <b>${s.average}</b>
-          </div>
-          <div class="stat-box" style="text-align: right;">
-            <p>Days Played</p>
-            <b>${s.days_played}</b>
-          </div>
+          <div class="stat-box"><p>Best Score</p><b>${s.best}</b></div>
+          <div class="stat-box" style="text-align: center;"><p>Daily Avg</p><b>${s.average}</b></div>
+          <div class="stat-box" style="text-align: right;"><p>Days</p><b>${s.days_played}</b></div>
         </div>
       </div>`;
   });
@@ -227,97 +190,48 @@ function renderSummary(summary) {
 function renderCharts(data) {
   const allDates = [...new Set(Object.values(data.players).flat().map(d => d.date))].sort();
 
-  // 1. Line Chart (Thick, smooth lines - expressive M3 style)
+  // 1. Line Chart
   const lineDatasets = Object.keys(data.players).map(player => {
     const totals = allDates.map(date => data.players[player].find(d => d.date === date)?.total || null);
     return { 
-      label: player, 
-      data: totals, 
-      borderColor: colors[player], 
-      backgroundColor: colors[player] + '22',
-      borderWidth: 4, // Chunky expressive lines
-      pointBackgroundColor: '#141218',
-      pointBorderColor: colors[player],
-      pointBorderWidth: 3,
-      pointRadius: 5,
-      pointHoverRadius: 8,
-      tension: 0.5 // Extra smooth curves
+      label: player, data: totals, 
+      borderColor: playerColors[player], backgroundColor: playerColors[player] + '22',
+      borderWidth: 4, tension: 0.5, pointBackgroundColor: '#141218', pointBorderColor: playerColors[player],
+      pointRadius: 5
     };
   });
 
   new Chart(document.getElementById('lineChart'), {
-    type: 'line',
-    data: { labels: allDates.map(d => d.substring(5)), datasets: lineDatasets }, // Trim year for mobile readability
-    options: {
-      ...commonOptions,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        ...commonOptions.plugins,
-        title: { display: true, align: 'start', text: 'Total Scores Over Time', color: '#E6E0E9', font: { size: 18, weight: '400' }, padding: { bottom: 20 } }
-      }
-    }
+    type: 'line', data: { labels: allDates.map(d => d.substring(5)), datasets: lineDatasets },
+    options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Total Scores Over Time', color: '#E6E0E9' } } }
   });
 
-  // 2. Average Scores Bar Chart (Pill shaped bars)
+  // 2. Average Bar Chart
   new Chart(document.getElementById('avgChart'), {
     type: 'bar',
     data: { 
       labels: Object.keys(data.summary), 
-      datasets: [{ 
-        label: 'Overall Average', 
-        data: Object.values(data.summary).map(s => s.average), 
-        backgroundColor: Object.values(colors),
-        borderRadius: 16, // M3 pill-shaped bars
-        borderSkipped: false,
-        barThickness: 32 // Thicker, friendlier bars
-      }] 
+      datasets: [{ data: Object.values(data.summary).map(s => s.average), backgroundColor: Object.keys(data.summary).map(p => playerColors[p]), borderRadius: 16 }] 
     },
-    options: { 
-      ...commonOptions,
-      plugins: {
-        ...commonOptions.plugins,
-        legend: { display: false },
-        title: { display: true, align: 'start', text: 'Overall Average', color: '#E6E0E9', font: { size: 18, weight: '400' } }
-      },
-      scales: {
-        x: { grid: { display: false } }
-      }
-    }
+    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false }, title: { display: true, align: 'start', text: 'Overall Average', color: '#E6E0E9' } } }
   });
 
-  // 3. Average per Game Bar Chart
+  // 3. Average Per Game Bar Chart
   const gameAvgs = {};
   Object.keys(data.players).forEach(player => {
-    const games = [1,2,3,4,5].map(i => {
-      const arr = data.players[player].map(d => d['g'+i]).filter(val => val !== undefined);
+    gameAvgs[player] = [1,2,3,4,5].map(i => {
+      const arr = data.players[player].map(d => d['g'+i]).filter(v => v > 0);
       return arr.length ? Math.round(arr.reduce((a,b)=>a+b)/arr.length) : 0;
     });
-    gameAvgs[player] = games;
   });
 
   new Chart(document.getElementById('gameChart'), {
     type: 'bar',
     data: { 
       labels: ['G1','G2','G3','G4','G5'], 
-      datasets: Object.keys(gameAvgs).map(p => ({ 
-        label: p, 
-        data: gameAvgs[p], 
-        backgroundColor: colors[p],
-        borderRadius: 8,
-        borderSkipped: false
-      })) 
+      datasets: Object.keys(gameAvgs).map(p => ({ label: p, data: gameAvgs[p], backgroundColor: playerColors[p], borderRadius: 8 })) 
     },
-    options: { 
-      ...commonOptions,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        ...commonOptions.plugins,
-        title: { display: true, align: 'start', text: 'Avg per Round', color: '#E6E0E9', font: { size: 18, weight: '400' } }
-      },
-      scales: {
-        x: { grid: { display: false } }
-      }
-    }
+    options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Avg per Round', color: '#E6E0E9' } } }
   });
 }
 
