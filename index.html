@@ -3,21 +3,21 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MapTap Battle</title>
+  <title>MapTap Battle: Harshit vs Abhed vs Garima</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <style>
     body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; padding: 20px; margin: 0; }
     h1 { text-align: center; color: #38bdf8; }
-   .charts { display: grid; gap: 30px; max-width: 1000px; margin: auto; }
+    .charts { display: grid; gap: 30px; max-width: 1000px; margin: auto; }
     canvas { background: #1e293b; border-radius: 12px; padding: 15px; }
     #summary { max-width: 900px; margin: 30px auto; display: flex; justify-content: space-around; gap: 15px; flex-wrap: wrap; }
-   .card { background: #1e293b; padding: 15px; border-radius: 12px; width: 200px; text-align: center; }
-   .card h3 { margin: 5px 0; color: #38bdf8; }
+    .card { background: #1e293b; padding: 15px; border-radius: 12px; width: 200px; text-align: center; }
+    .card h3 { margin: 5px 0; color: #38bdf8; }
     #loading { text-align: center; padding: 50px; }
   </style>
 </head>
 <body>
-  <h1>🏆 MapTap Battle</h1>
+  <h1>🏆 MapTap 3-Way Battle</h1>
   <div id="loading">Loading scores...</div>
   <div id="content" style="display:none">
     <div id="summary"></div>
@@ -33,7 +33,6 @@ const colors = { Harshit: '#3b82f6', Abhed: '#ef4444', Garima: '#10b981' };
 
 async function loadData() {
   try {
-    // IMPORTANT: use./ for github pages
     const res = await fetch('./maptap_scores.json?v=' + new Date().getTime());
     if(!res.ok) throw new Error('Could not load JSON');
     const data = await res.json();
@@ -44,12 +43,13 @@ async function loadData() {
     renderSummary(data.summary);
     renderCharts(data);
   } catch(err) {
-    document.getElementById('loading').innerHTML = 'Error loading data: ' + err.message + '<br>Make sure maptap_scores.json is in the same folder';
+    document.getElementById('loading').innerHTML = 'Error loading data: ' + err.message + '<br>Make sure maptap_scores.json is in the same folder and you are using a local server.';
   }
 }
 
 function renderSummary(summary) {
   const container = document.getElementById('summary');
+  container.innerHTML = ''; // Clear container first
   Object.keys(summary).forEach(player => {
     const s = summary[player];
     container.innerHTML += `<div class="card"><h3>${player}</h3><p><b>Best:</b> ${s.best}</p><p><b>Avg:</b> ${s.average}</p><p><b>Days:</b> ${s.days_played}</p></div>`;
@@ -64,23 +64,24 @@ function renderCharts(data) {
     return { label: player, data: totals, borderColor: colors[player], backgroundColor: colors[player] + '33', tension: 0.3 };
   });
 
+  // FIXED: Added missing closing braces below
   new Chart(document.getElementById('lineChart'), {
     type: 'line',
     data: { labels: allDates, datasets },
-    options: { responsive: true, plugins: { title: { display: true, text: 'Daily Total Scores' } }
+    options: { responsive: true, plugins: { title: { display: true, text: 'Daily Total Scores' } } }
   });
 
   new Chart(document.getElementById('avgChart'), {
     type: 'bar',
     data: { labels: Object.keys(data.summary), datasets: [{ label: 'Average', data: Object.values(data.summary).map(s => s.average), backgroundColor: Object.values(colors) }] },
-    options: { plugins: { title: { display: true, text: 'Average Scores' } }
+    options: { plugins: { title: { display: true, text: 'Average Scores' } } }
   });
 
   const gameAvgs = {};
   Object.keys(data.players).forEach(player => {
     const games = [1,2,3,4,5].map(i => {
-      const arr = data.players[player].map(d => d['g'+i]);
-      return Math.round(arr.reduce((a,b)=>a+b)/arr.length);
+      const arr = data.players[player].map(d => d['g'+i]).filter(val => val !== undefined);
+      return arr.length ? Math.round(arr.reduce((a,b)=>a+b)/arr.length) : 0;
     });
     gameAvgs[player] = games;
   });
@@ -88,7 +89,7 @@ function renderCharts(data) {
   new Chart(document.getElementById('gameChart'), {
     type: 'bar',
     data: { labels: ['G1','G2','G3','G4','G5'], datasets: Object.keys(gameAvgs).map(p => ({ label: p, data: gameAvgs[p], backgroundColor: colors[p] })) },
-    options: { plugins: { title: { display: true, text: 'Average per Game' } }
+    options: { plugins: { title: { display: true, text: 'Average per Game' } } }
   });
 }
 
