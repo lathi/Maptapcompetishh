@@ -266,34 +266,38 @@ function renderCharts(data) {
     options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Total Scores Over Time', color: '#E6E0E9' } } }
   });
 
- // 2. Average Bar Chart
- new Chart(document.getElementById('avgChart'), {
-   type: 'bar',
-   data: { 
-     labels: sortedPlayerNames,
-  datasets: [
-    { data: sortedPlayerNames.map(p => data.summary[p].average), 
-     backgroundColor: sortedPlayerNames.map(p => playerColors[p]), borderRadius: 16 
+// 2. Average Bar Chart (Axis starting at 500)
+  new Chart(document.getElementById('avgChart'), {
+    type: 'bar', // Set back to a standard bar chart
+    data: { 
+      labels: sortedPlayerNames, 
+      datasets: [{ 
+        label: 'Overall Average',
+        data: sortedPlayerNames.map(p => data.summary[p].average), 
+        backgroundColor: sortedPlayerNames.map(p => playerColors[p]), 
+        borderRadius: 4
+      }] 
+    },
+    options: { 
+      ...commonOptions, 
+      scales: {
+        y: {
+          min: 500, // This is the exact line that forces the axis to start at 500
+          grid: { color: '#49454F', drawBorder: false },
+          ticks: { color: '#E6E0E9' }
+        },
+        x: {
+          grid: { display: false },
+          ticks: { color: '#E6E0E9' }
+        }
+      },
+      plugins: { 
+        ...commonOptions.plugins, 
+        legend: { display: false }, 
+        title: { display: true, align: 'start', text: 'Overall Average', color: '#E6E0E9' } 
+      } 
     }
-  ] 
-   },
-   options: { ...commonOptions, 
-             scales: {
-               y: {
-                 min: 500, // This is the exact line that forces the axis to start at 500
-                 grid: { color: '#49454F', drawBorder: false },
-                 ticks: { color: '#E6E0E9' }
-               },
-               x: {
-                 grid: { display: false },
-                 ticks: { color: '#E6E0E9' }
-               }
-             },
-             plugins: { ...commonOptions.plugins, 
-                       legend: { display: false }, 
-                       title: { display: true, align: 'start', text: 'Overall Average Rank', color: '#E6E0E9' } }   
-            };
-
+  });
   // 3. Average Per Game Bar Chart
   const gameAvgs = {};
   sortedPlayerNames.forEach(player => {
