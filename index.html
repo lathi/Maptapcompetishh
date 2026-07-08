@@ -233,12 +233,12 @@ function renderSummary(summary) {
         <h3>${p.name}</h3>
         <div class="stats">
           <div class="stat-box"><p>Best Score</p><b>${p.best}</b></div>
-          <div class="stat-box" style="text-align: center;"><p>Overall Avg</p><b>${p.average} 🎯</b></div>
+          <div class="stat-box" style="text-align: center;"><p>Overall Avg</p><b>${p.average}</b></div>
           <div class="stat-box" style="text-align: right;"><p>Days Played</p><b>${p.days_played}</b></div>
         </div>
         <div class="subdata-shelf">
           <span>🏆 Days Won: <b>${p.wins}</b></span>
-          <span>🔥 99+ Scores: <b>${p.onTargetCount}</b></span>
+          <span>🎯 99+ Scores: <b>${p.onTargetCount}</b></span>
         </div>
       </div>`;
   });
@@ -263,7 +263,7 @@ function renderCharts(data) {
 
   new Chart(document.getElementById('lineChart'), {
     type: 'line', data: { labels: allDates.map(d => d.substring(5)), datasets: lineDatasets },
-    options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Total Scores Over Time (Chronological)', color: '#E6E0E9' } } }
+    options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Total Scores Over Time', color: '#E6E0E9' } } }
   });
 
   // 2. Average Bar Chart
