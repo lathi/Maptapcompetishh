@@ -275,63 +275,58 @@ function renderCharts(data) {
 //    },
 //    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false }, title: { display: true, align: 'start', text: 'Overall Average Rank', color: '#E6E0E9' } }   });
 
-    // 2. Overall Average Lollipop Chart
+// 2. Overall Average Polar Area Chart
   new Chart(document.getElementById('avgChart'), {
+    type: 'polarArea',
     data: { 
       labels: sortedPlayerNames, 
-      datasets: [
-        { 
-          // The "Candy" (The Dot at the top)
-          type: 'line',
-          data: sortedPlayerNames.map(p => data.summary[p].average), 
-          backgroundColor: sortedPlayerNames.map(p => playerColors[p]), 
-          borderColor: sortedPlayerNames.map(p => playerColors[p]),
-          pointRadius: 10,         // Size of the dot
-          pointHoverRadius: 14,    // Grows when you hover over it
-          showLine: false,         // Keeps dots disconnected
-          order: 1                 // Ensures the dot renders ON TOP of the stick
-        },
-        { 
-          // The "Stick" (The thin line down to the baseline)
-          type: 'bar',
-          data: sortedPlayerNames.map(p => data.summary[p].average), 
-          backgroundColor: sortedPlayerNames.map(p => playerColors[p]), 
-          barThickness: 4,         // Makes the bar ultra-thin
-          borderRadius: 2,         // Slightly rounds the edges of the stick
-          order: 2                 // Renders behind the dot
-        }
-      ] 
+      datasets: [{ 
+        data: sortedPlayerNames.map(p => data.summary[p].average), 
+        // Polar charts look best with a slight transparency so you can see the grid beneath
+        backgroundColor: sortedPlayerNames.map(p => playerColors[p]), 
+        borderColor: sortedPlayerNames.map(p => playerColors[p]),
+        borderWidth: 2
+      }] 
     },
     options: { 
       ...commonOptions, 
       scales: {
-        y: {
-          min: 500, // Your zoomed-in baseline!
-          grid: { color: '#49454F', drawBorder: false }
-        },
-        x: {
-          grid: { display: false } // Removes vertical lines for a sleeker dashboard
+        // 'r' controls the radial scale (the circles growing outward)
+        r: {
+          min: 500, // Starts the center dead-zone at 500
+          grid: { 
+            color: '#49454F' // Keeps your dark-mode aesthetic
+          },
+          angleLines: {
+            color: '#49454F' // The lines radiating outward from the center
+          },
+          pointLabels: {
+            display: false // Hides outer edge labels if you prefer a cleaner look
+          },
+          ticks: {
+            display: true, // Shows the 500, 600, 700 markers
+            backdropColor: 'transparent', // Stops a white box from drawing behind the numbers
+            color: '#E6E0E9'
+          }
         }
       },
       plugins: { 
         ...commonOptions.plugins, 
-        legend: { display: false }, 
+        // Polar charts don't have an x-axis to label players, so we turn the legend ON
+        legend: { 
+          display: true, 
+          position: 'right',
+          labels: { color: '#E6E0E9' }
+        }, 
         title: { 
           display: true, 
           align: 'start', 
-          text: 'Overall Avg (Points Above 500 Baseline)', 
+          text: 'Overall Average (Base 500)', 
           color: '#E6E0E9' 
-        },
-        tooltip: {
-          // This prevents the tooltip from showing the score twice (once for the dot, once for the stick)
-          filter: function(tooltipItem) {
-            return tooltipItem.datasetIndex === 0; 
-          }
-        }
+        } 
       } 
     }
   });
-
 
   // 3. Average Per Game Bar Chart
   const gameAvgs = {};
