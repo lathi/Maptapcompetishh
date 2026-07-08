@@ -266,67 +266,33 @@ function renderCharts(data) {
     options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Total Scores Over Time', color: '#E6E0E9' } } }
   });
 
-  // 2. Average Bar Chart
- // new Chart(document.getElementById('avgChart'), {
-//    type: 'bar',
-//    data: { 
-//      labels: sortedPlayerNames,
-  //datasets: [{ data: sortedPlayerNames.map(p => data.summary[p].average), backgroundColor: sortedPlayerNames.map(p => playerColors[p]), borderRadius: 16 }] 
-//    },
-//    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false }, title: { display: true, align: 'start', text: 'Overall Average Rank', color: '#E6E0E9' } }   });
-
-// 2. Overall Average Polar Area Chart
-  new Chart(document.getElementById('avgChart'), {
-    type: 'polarArea',
-    data: { 
-      labels: sortedPlayerNames, 
-      datasets: [{ 
-        data: sortedPlayerNames.map(p => data.summary[p].average), 
-        // Polar charts look best with a slight transparency so you can see the grid beneath
-        backgroundColor: sortedPlayerNames.map(p => playerColors[p]), 
-        borderColor: sortedPlayerNames.map(p => playerColors[p]),
-        borderWidth: 2
-      }] 
-    },
-    options: { 
-      ...commonOptions, 
-      scales: {
-        // 'r' controls the radial scale (the circles growing outward)
-        r: {
-          min: 500, // Starts the center dead-zone at 500
-          grid: { 
-            color: '#49454F' // Keeps your dark-mode aesthetic
-          },
-          angleLines: {
-            color: '#49454F' // The lines radiating outward from the center
-          },
-          pointLabels: {
-            display: false // Hides outer edge labels if you prefer a cleaner look
-          },
-          ticks: {
-            display: true, // Shows the 500, 600, 700 markers
-            backdropColor: 'transparent', // Stops a white box from drawing behind the numbers
-            color: '#E6E0E9'
-          }
-        }
-      },
-      plugins: { 
-        ...commonOptions.plugins, 
-        // Polar charts don't have an x-axis to label players, so we turn the legend ON
-        legend: { 
-          display: true, 
-          position: 'right',
-          labels: { color: '#E6E0E9' }
-        }, 
-        title: { 
-          display: true, 
-          align: 'start', 
-          text: 'Overall Average (Base 500)', 
-          color: '#E6E0E9' 
-        } 
-      } 
+ // 2. Average Bar Chart
+ new Chart(document.getElementById('avgChart'), {
+   type: 'bar',
+   data: { 
+     labels: sortedPlayerNames,
+  datasets: [
+    { data: sortedPlayerNames.map(p => data.summary[p].average), 
+     backgroundColor: sortedPlayerNames.map(p => playerColors[p]), borderRadius: 16 
     }
-  });
+  ] 
+   },
+   options: { ...commonOptions, 
+             scales: {
+               y: {
+                 min: 500, // This is the exact line that forces the axis to start at 500
+                 grid: { color: '#49454F', drawBorder: false },
+                 ticks: { color: '#E6E0E9' }
+               },
+               x: {
+                 grid: { display: false },
+                 ticks: { color: '#E6E0E9' }
+               }
+             },
+             plugins: { ...commonOptions.plugins, 
+                       legend: { display: false }, 
+                       title: { display: true, align: 'start', text: 'Overall Average Rank', color: '#E6E0E9' } }   
+            });
 
   // 3. Average Per Game Bar Chart
   const gameAvgs = {};
