@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>MapTap Battle</title>
+  
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  
+  <style>
+    :root {
+      --m3-surface: #141218;
+      --m3-surface-container: #211F26;
+      --m3-on-surface: #E6E0E9;
+      --m3-on-surface-variant: #CAC4D0;
+      --m3-outline-variant: #49454F;
+    }
+
+    body { 
+      font-family: system-ui, -apple-system, sans-serif; 
+      background: var(--m3-surface); 
+      color: var(--m3-on-surface); 
+      padding: 16px; margin: 0; min-height: 100vh;
+      overscroll-behavior-y: none; 
+    }
+
+    h1 { 
+      font-size: 2.25rem; font-weight: 400; line-height: 1.2; letter-spacing: -0.5px;
+      margin: 1rem 0 2rem 8px; color: var(--m3-on-surface);
+    }
+    h1 span { 
+      display: block; font-size: 3rem; font-weight: 700;
+      background: linear-gradient(90deg, #D0BCFF, #93D7A5);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+
+    .dashboard { display: flex; flex-direction: column; gap: 16px; }
+    
+    .summary-container { display: grid; grid-template-columns: 1fr; gap: 12px; }
+    
+    .card { 
+      background: var(--m3-surface-container);
+      padding: 20px 24px; border-radius: 28px; position: relative; overflow: hidden;
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 8px;
+      background: var(--player-color);
+    }
+    .card h3 { margin: 0; font-size: 1.5rem; font-weight: 500; color: var(--player-color); text-transform: capitalize; }
+    .card .stats { display: flex; justify-content: space-between; margin-top: 8px; }
+    .card .stat-box { display: flex; flex-direction: column; }
+    .card p { margin: 0; color: var(--m3-on-surface-variant); font-size: 0.85rem; }
+    .card b { color: var(--m3-on-surface); font-size: 1.2rem; font-weight: 600; }
+
+    .card .subdata-shelf {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid var(--m3-outline-variant);
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: var(--m3-on-surface-variant);
+    }
+    .card .subdata-shelf span b {
+      font-size: 0.95rem;
+    }
+
+    .chart-wrapper { 
+      background: var(--m3-surface-container); padding: 16px; border-radius: 28px; 
+      position: relative; height: 320px; width: 100%; box-sizing: border-box;
+    }
+
+    #loading { text-align: center; padding: 50px; color: var(--m3-on-surface-variant); }
+    
+    @media (min-width: 600px) {
+      body { padding: 24px; }
+      .summary-container { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+      h1 { text-align: center; margin: 2rem 0 3rem 0; }
+      h1 span { display: inline; }
+      .dashboard { grid-template-columns: 1fr 1fr; display: grid; gap: 24px; }
+      .chart-wrapper { height: 400px; }
+      .chart-wrapper.full-width { grid-column: 1 / -1; }
+      .summary-container { grid-column: 1 / -1; }
+    }
+  </style>
+</head>
+<body>
+  <h1>MapTap <span>Live Battle</span></h1>
+  
+  <div id="loading">Syncing with Google Sheets...</div>
+  
+  <div id="content" class="dashboard" style="display:none">
+    <div id="summary" class="summary-container"></div>
+    <div class="chart-wrapper full-width"><canvas id="lineChart"></canvas></div>
+    <div class="chart-wrapper"><canvas id="avgChart"></canvas></div>
+    <div class="chart-wrapper"><canvas id="gameChart"></canvas></div>
+  </div>
+
+<script>
+const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQPFgmGfghk598dLxNIJL6xlkWlivVnOPGh3ooWz6Sp0h3cljFBoG9qPSW4iobNi9xVUHTg03_cpFTZ/pub?output=csv';
+
+const m3Palette = ['#D0BCFF', '#FFB4AB', '#93D7A5', '#FDE293', '#9CBCE2', '#FFD8E4', '#C9DF8A', '#F4B8E4'];
+const playerColors = {}; 
+
+Chart.defaults.color = '#CAC4D0';
+Chart.defaults.font.family = "system-ui, -apple-system, sans-serif";
+Chart.defaults.scale.grid.color = '#49454F';
+Chart.defaults.scale.grid.drawBorder = false;
+
+const commonOptions = {
+  responsive: true, maintainAspectRatio: false, layout: { padding: { top: 10 } },
+  plugins: {
+    legend: { position: 'bottom', labels: { usePointStyle: true, padding: 20 } },
+    tooltip: { backgroundColor: '#2B2930', titleColor: '#E6E0E9', bodyColor: '#CAC4D0', padding: 16, cornerRadius: 16, usePointStyle: true }
+  }
+};
+
+function loadData() {
+  Papa.parse(SHEET_CSV_URL, {
+    download: true,
+    header: true,
+    skipEmptyLines: true,
+    complete: function(results) {
+      processData(results.data);
+    },
+    error: function(err) {
+      document.getElementById('loading').innerHTML = `⚠️ Error fetching Sheet: ${err.message}`;
+    }
+  });
+}
+
+function processData(rows) {
+  // Filter out completely blank records and clean strings up
+  const validRows = rows.filter(row => row.Date && row.Player && row.Player.trim() !== '');
+
+  // CRUCIAL: Sort the records by Date ascending before plotting/summarizing
+  validRows.sort((a, b) => a.Date.trim().localeCompare(b.Date.trim()));
+
+  // 1. Calculate Daily Winners Upfront across all timelines
+  const dailyHighScores = {};
+  validRows.forEach(row => {
+    const date = row.Date.trim();
+    const player = row.Player.trim();
+    const total = parseInt(row.Total) || 0;
+
+    if (!dailyHighScores[date]) {
+      dailyHighScores[date] = { maxScore: total, winners: [player] };
+    } else {
+      if (total > dailyHighScores[date].maxScore) {
+        dailyHighScores[date].maxScore = total;
+        dailyHighScores[date].winners = [player];
+      } else if (total === dailyHighScores[date].maxScore) {
+        dailyHighScores[date].winners.push(player);
+      }
+    }
+  });
+
+  const matchWinsTracker = {};
+  Object.values(dailyHighScores).forEach(day => {
+    day.winners.forEach(winner => {
+      matchWinsTracker[winner] = (matchWinsTracker[winner] || 0) + 1;
+    });
+  });
+
+  const data = { summary: {}, players: {} };
+  let colorIndex = 0;
+
+  // 2. Map and build individual metric models over sorted data streams
+  validRows.forEach(row => {
+    const player = row.Player.trim();
+
+    if (!playerColors[player]) {
+      playerColors[player] = m3Palette[colorIndex % m3Palette.length];
+      colorIndex++;
+    }
+
+    if (!data.players[player]) {
+      data.players[player] = [];
+      data.summary[player] = { best: 0, totalAccumulated: 0, days_played: 0, wins: matchWinsTracker[player] || 0, onTargetCount: 0 };
+    }
+
+    const total = parseInt(row.Total) || 0;
+
+    // Track performance values hitting 99 or above (On-Target metric)
+    ['G1', 'G2', 'G3', 'G4', 'G5'].forEach(gKey => {
+      const individualScore = parseInt(row[gKey]) || 0;
+      if (individualScore >= 99) {
+        data.summary[player].onTargetCount += 1;
+      }
+    });
+
+    data.players[player].push({
+      date: row.Date.trim(),
+      total: total,
+      g1: parseInt(row.G1)||0, g2: parseInt(row.G2)||0, g3: parseInt(row.G3)||0, 
+      g4: parseInt(row.G4)||0, g5: parseInt(row.G5)||0
+    });
+
+    if (total > data.summary[player].best) data.summary[player].best = total;
+    data.summary[player].totalAccumulated += total;
+    data.summary[player].days_played += 1;
+  });
+
+  // Complete Overall Averages
+  Object.keys(data.summary).forEach(p => {
+    const s = data.summary[p];
+    s.average = Math.round(s.totalAccumulated / s.days_played);
+  });
+
+  document.getElementById('loading').style.display = 'none';
+  const content = document.getElementById('content');
+  content.style.display = window.innerWidth > 600 ? 'grid' : 'flex';
+
+  renderSummary(data.summary);
+  renderCharts(data);
+}
+
+function renderSummary(summary) {
+  const container = document.getElementById('summary');
+  container.innerHTML = ''; 
+
+  // Convert schema objects into array properties to sort via Highest Overall Average descending
+  const rankedPlayers = Object.keys(summary).map(player => ({
+    name: player,
+    ...summary[player]
+  })).sort((a, b) => b.average - a.average);
+
+  rankedPlayers.forEach(p => {
+    container.innerHTML += `
+      <div class="card" style="--player-color: ${playerColors[p.name]}">
+        <h3>${p.name}</h3>
+        <div class="stats">
+          <div class="stat-box"><p>Best Score</p><b>${p.best}</b></div>
+          <div class="stat-box" style="text-align: center;"><p>Overall Avg</p><b>${p.average} 🎯</b></div>
+          <div class="stat-box" style="text-align: right;"><p>Days Played</p><b>${p.days_played}</b></div>
+        </div>
+        <div class="subdata-shelf">
+          <span>🏆 Days Won: <b>${p.wins}</b></span>
+          <span>🔥 99+ Scores: <b>${p.onTargetCount}</b></span>
+        </div>
+      </div>`;
+  });
+}
+
+function renderCharts(data) {
+  const allDates = [...new Set(Object.values(data.players).flat().map(d => d.date))].sort();
+  
+  // Sort dataset arrays consistently based on ranking to align visual legends cleanly
+  const sortedPlayerNames = Object.keys(data.summary).sort((a, b) => data.summary[b].average - data.summary[a].average);
+
+  // 1. Line Chart
+  const lineDatasets = sortedPlayerNames.map(player => {
+    const totals = allDates.map(date => data.players[player].find(d => d.date === date)?.total || null);
+    return { 
+      label: player, data: totals, 
+      borderColor: playerColors[player], backgroundColor: playerColors[player] + '22',
+      borderWidth: 4, tension: 0.4, pointBackgroundColor: '#141218', pointBorderColor: playerColors[player],
+      pointRadius: 5
+    };
+  });
+
+  new Chart(document.getElementById('lineChart'), {
+    type: 'line', data: { labels: allDates.map(d => d.substring(5)), datasets: lineDatasets },
+    options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Total Scores Over Time (Chronological)', color: '#E6E0E9' } } }
+  });
+
+  // 2. Average Bar Chart
+  new Chart(document.getElementById('avgChart'), {
+    type: 'bar',
+    data: { 
+      labels: sortedPlayerNames, 
+      datasets: [{ data: sortedPlayerNames.map(p => data.summary[p].average), backgroundColor: sortedPlayerNames.map(p => playerColors[p]), borderRadius: 16 }] 
+    },
+    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false }, title: { display: true, align: 'start', text: 'Overall Average Rank', color: '#E6E0E9' } } }
+  });
+
+  // 3. Average Per Game Bar Chart
+  const gameAvgs = {};
+  sortedPlayerNames.forEach(player => {
+    gameAvgs[player] = [1,2,3,4,5].map(i => {
+      const arr = data.players[player].map(d => d['g'+i]).filter(v => v > 0);
+      return arr.length ? Math.round(arr.reduce((a,b)=>a+b)/arr.length) : 0;
+    });
+  });
+
+  new Chart(document.getElementById('gameChart'), {
+    type: 'bar',
+    data: { 
+      labels: ['G1','G2','G3','G4','G5'], 
+      datasets: sortedPlayerNames.map(p => ({ label: p, data: gameAvgs[p], backgroundColor: playerColors[p], borderRadius: 8 })) 
+    },
+    options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Avg per Round', color: '#E6E0E9' } } }
+  });
+}
+
+loadData();
+</script>
+</body>
+</html>
