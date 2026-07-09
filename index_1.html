@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>MapTap Battle</title>
   
+  <!-- Chart.js & PapaParse (for Google Sheets CSV) -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
   
@@ -54,19 +55,6 @@
     .card p { margin: 0; color: var(--m3-on-surface-variant); font-size: 0.85rem; }
     .card b { color: var(--m3-on-surface); font-size: 1.2rem; font-weight: 600; }
 
-    .card .subdata-shelf {
-      margin-top: 14px;
-      padding-top: 10px;
-      border-top: 1px solid var(--m3-outline-variant);
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.85rem;
-      color: var(--m3-on-surface-variant);
-    }
-    .card .subdata-shelf span b {
-      font-size: 0.95rem;
-    }
-
     .chart-wrapper { 
       background: var(--m3-surface-container); padding: 16px; border-radius: 28px; 
       position: relative; height: 320px; width: 100%; box-sizing: border-box;
@@ -99,8 +87,10 @@
   </div>
 
 <script>
+// Replace this with your Google Sheet CSV Link later!
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQPFgmGfghk598dLxNIJL6xlkWlivVnOPGh3ooWz6Sp0h3cljFBoG9qPSW4iobNi9xVUHTg03_cpFTZ/pub?output=csv';
 
+// A dynamic pool of Material You colors. It auto-assigns as new players appear.
 const m3Palette = ['#D0BCFF', '#FFB4AB', '#93D7A5', '#FDE293', '#9CBCE2', '#FFD8E4', '#C9DF8A', '#F4B8E4'];
 const playerColors = {}; 
 
@@ -132,78 +122,41 @@ function loadData() {
 }
 
 function processData(rows) {
-  // Filter out completely blank records and clean strings up
-  const validRows = rows.filter(row => row.Date && row.Player && row.Player.trim() !== '');
-
-  // CRUCIAL: Sort the records by Date ascending before plotting/summarizing
-  validRows.sort((a, b) => a.Date.trim().localeCompare(b.Date.trim()));
-
-  // 1. Calculate Daily Winners Upfront across all timelines
-  const dailyHighScores = {};
-  validRows.forEach(row => {
-    const date = row.Date.trim();
-    const player = row.Player.trim();
-    const total = parseInt(row.Total) || 0;
-
-    if (!dailyHighScores[date]) {
-      dailyHighScores[date] = { maxScore: total, winners: [player] };
-    } else {
-      if (total > dailyHighScores[date].maxScore) {
-        dailyHighScores[date].maxScore = total;
-        dailyHighScores[date].winners = [player];
-      } else if (total === dailyHighScores[date].maxScore) {
-        dailyHighScores[date].winners.push(player);
-      }
-    }
-  });
-
-  const matchWinsTracker = {};
-  Object.values(dailyHighScores).forEach(day => {
-    day.winners.forEach(winner => {
-      matchWinsTracker[winner] = (matchWinsTracker[winner] || 0) + 1;
-    });
-  });
-
   const data = { summary: {}, players: {} };
   let colorIndex = 0;
 
-  // 2. Map and build individual metric models over sorted data streams
-  validRows.forEach(row => {
-    const player = row.Player.trim();
+  rows.forEach(row => {
+    const player = row.Player ? row.Player.trim() : 'Unknown';
+    if (!player) return; // Skip invalid rows
 
+    // 1. Assign color if they are a new player
     if (!playerColors[player]) {
       playerColors[player] = m3Palette[colorIndex % m3Palette.length];
       colorIndex++;
     }
 
+    // 2. Initialize player in data structure if they don't exist
     if (!data.players[player]) {
       data.players[player] = [];
-      data.summary[player] = { best: 0, totalAccumulated: 0, days_played: 0, wins: matchWinsTracker[player] || 0, onTargetCount: 0 };
+      data.summary[player] = { best: 0, totalAccumulated: 0, days_played: 0 };
     }
 
+    // 3. Extract scores
     const total = parseInt(row.Total) || 0;
-
-    // Track performance values hitting 99 or above (On-Target metric)
-    ['G1', 'G2', 'G3', 'G4', 'G5'].forEach(gKey => {
-      const individualScore = parseInt(row[gKey]) || 0;
-      if (individualScore >= 99) {
-        data.summary[player].onTargetCount += 1;
-      }
-    });
-
     data.players[player].push({
-      date: row.Date.trim(),
+      date: row.Date,
       total: total,
       g1: parseInt(row.G1)||0, g2: parseInt(row.G2)||0, g3: parseInt(row.G3)||0, 
       g4: parseInt(row.G4)||0, g5: parseInt(row.G5)||0
     });
 
+    // 4. Update Summary Math
     if (total > data.summary[player].best) data.summary[player].best = total;
     data.summary[player].totalAccumulated += total;
     data.summary[player].days_played += 1;
   });
 
-  // Complete Overall Averages
+  // Calculate Averages
   Object.keys(data.summary).forEach(p => {
     const s = data.summary[p];
     s.average = Math.round(s.totalAccumulated / s.days_played);
@@ -220,25 +173,15 @@ function processData(rows) {
 function renderSummary(summary) {
   const container = document.getElementById('summary');
   container.innerHTML = ''; 
-
-  // Convert schema objects into array properties to sort via Highest Overall Average descending
-  const rankedPlayers = Object.keys(summary).map(player => ({
-    name: player,
-    ...summary[player]
-  })).sort((a, b) => b.average - a.average);
-
-  rankedPlayers.forEach(p => {
+  Object.keys(summary).forEach(player => {
+    const s = summary[player];
     container.innerHTML += `
-      <div class="card" style="--player-color: ${playerColors[p.name]}">
-        <h3>${p.name}</h3>
+      <div class="card" style="--player-color: ${playerColors[player]}">
+        <h3>${player}</h3>
         <div class="stats">
-          <div class="stat-box"><p>Best Score</p><b>${p.best}</b></div>
-          <div class="stat-box" style="text-align: center;"><p>Overall Avg</p><b>${p.average}</b></div>
-          <div class="stat-box" style="text-align: right;"><p>Days Played</p><b>${p.days_played}</b></div>
-        </div>
-        <div class="subdata-shelf">
-          <span>🏆 Days Won: <b>${p.wins}</b></span>
-          <span>🎯 99+ Scores: <b>${p.onTargetCount}</b></span>
+          <div class="stat-box"><p>Best Score</p><b>${s.best}</b></div>
+          <div class="stat-box" style="text-align: center;"><p>Daily Avg</p><b>${s.average}</b></div>
+          <div class="stat-box" style="text-align: right;"><p>Days</p><b>${s.days_played}</b></div>
         </div>
       </div>`;
   });
@@ -246,17 +189,14 @@ function renderSummary(summary) {
 
 function renderCharts(data) {
   const allDates = [...new Set(Object.values(data.players).flat().map(d => d.date))].sort();
-  
-  // Sort dataset arrays consistently based on ranking to align visual legends cleanly
-  const sortedPlayerNames = Object.keys(data.summary).sort((a, b) => data.summary[b].average - data.summary[a].average);
 
   // 1. Line Chart
-  const lineDatasets = sortedPlayerNames.map(player => {
+  const lineDatasets = Object.keys(data.players).map(player => {
     const totals = allDates.map(date => data.players[player].find(d => d.date === date)?.total || null);
     return { 
       label: player, data: totals, 
       borderColor: playerColors[player], backgroundColor: playerColors[player] + '22',
-      borderWidth: 4, tension: 0.4, pointBackgroundColor: '#141218', pointBorderColor: playerColors[player],
+      borderWidth: 4, tension: 0.5, pointBackgroundColor: '#141218', pointBorderColor: playerColors[player],
       pointRadius: 5
     };
   });
@@ -266,41 +206,19 @@ function renderCharts(data) {
     options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Total Scores Over Time', color: '#E6E0E9' } } }
   });
 
-// 2. Average Bar Chart (Axis starting at 500)
+  // 2. Average Bar Chart
   new Chart(document.getElementById('avgChart'), {
-    type: 'bar', // Set back to a standard bar chart
+    type: 'bar',
     data: { 
-      labels: sortedPlayerNames, 
-      datasets: [{ 
-        label: 'Overall Average',
-        data: sortedPlayerNames.map(p => data.summary[p].average), 
-        backgroundColor: sortedPlayerNames.map(p => playerColors[p]), 
-        borderRadius: 16
-      }] 
+      labels: Object.keys(data.summary), 
+      datasets: [{ data: Object.values(data.summary).map(s => s.average), backgroundColor: Object.keys(data.summary).map(p => playerColors[p]), borderRadius: 16 }] 
     },
-    options: { 
-      ...commonOptions, 
-      scales: {
-        y: {
-          min: 500, // This is the exact line that forces the axis to start at 500
-          grid: { color: '#49454F', drawBorder: false },
-          ticks: { color: '#E6E0E9' }
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: '#E6E0E9' }
-        }
-      },
-      plugins: { 
-        ...commonOptions.plugins, 
-        legend: { display: false }, 
-        title: { display: true, align: 'start', text: 'Overall Average', color: '#E6E0E9' } 
-      } 
-    }
+    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false }, title: { display: true, align: 'start', text: 'Overall Average', color: '#E6E0E9' } } }
   });
+
   // 3. Average Per Game Bar Chart
   const gameAvgs = {};
-  sortedPlayerNames.forEach(player => {
+  Object.keys(data.players).forEach(player => {
     gameAvgs[player] = [1,2,3,4,5].map(i => {
       const arr = data.players[player].map(d => d['g'+i]).filter(v => v > 0);
       return arr.length ? Math.round(arr.reduce((a,b)=>a+b)/arr.length) : 0;
@@ -311,7 +229,7 @@ function renderCharts(data) {
     type: 'bar',
     data: { 
       labels: ['G1','G2','G3','G4','G5'], 
-      datasets: sortedPlayerNames.map(p => ({ label: p, data: gameAvgs[p], backgroundColor: playerColors[p], borderRadius: 8 })) 
+      datasets: Object.keys(gameAvgs).map(p => ({ label: p, data: gameAvgs[p], backgroundColor: playerColors[p], borderRadius: 8 })) 
     },
     options: { ...commonOptions, interaction: { mode: 'index', intersect: false }, plugins: { ...commonOptions.plugins, title: { display: true, align: 'start', text: 'Avg per Round', color: '#E6E0E9' } } }
   });
